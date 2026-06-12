@@ -13,6 +13,4 @@ public class ProductCreateRequest
     public bool IsAvailable { get; set; }
     
     public int CategoryId { get; set; }
-    
-    public int USerId { get; set; } // se extrae de los claims y por lo tanto el usuario no lo puede asignar.
 }

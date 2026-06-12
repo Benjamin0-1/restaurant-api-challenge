@@ -8,6 +8,8 @@ using Restaurant.Services.Interfaces;
 namespace Restaurant.Controllers.V1;
 
 [Authorize]
+[ApiController]
+[Route("api/v1/products")]
 public class ProductController : ControllerBase
 {
     private readonly IProductService  _productService;
@@ -20,16 +22,25 @@ public class ProductController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] ProductFilter? filters, CancellationToken cancellationToken)
     {
-        var result = _productService.GetAsync(filters, cancellationToken).Result;
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _productService.GetAsync(filters, userId, cancellationToken);
         return Ok(result);
     }
     
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] ProductCreateRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromBody] ProductCreateRequest request,
+        CancellationToken cancellationToken)
     {
-        request.USerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); // se asigna automaticamente.
-        var result = await _productService.CreateAsync(request, cancellationToken);
+        var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await _productService.CreateAsync(
+            request,
+            userId,
+            cancellationToken);
+
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 }

@@ -14,17 +14,25 @@ namespace Restaurant.Services;
 public class ProductService : IProductService
 {
     private readonly DatabaseContext _context;
-    private readonly IValidator<ProductCreateRequest> _validator;
+    private readonly IValidator<ProductCreateRequest> _createValidator;
+    private readonly IValidator<ProductUpdateRequest> _updateValidator;
 
-    public ProductService(DatabaseContext context, IValidator<ProductCreateRequest> validator)
+    public ProductService(
+        DatabaseContext context,
+        IValidator<ProductCreateRequest> createValidator,
+        IValidator<ProductUpdateRequest> updateValidator)
     {
         _context = context;
-        _validator = validator;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
-    public async Task<PaginatedDto<ProductDto>> GetAsync(ProductFilter? filters, CancellationToken cancellationToken)
+    public async Task<PaginatedDto<ProductDto>> GetAsync(ProductFilter? filters, 
+        int userId, CancellationToken cancellationToken)
     {
-        IQueryable<ProductEntity> query = _context.Products.Where(x => x.IsDeleted == false).AsNoTracking(); // no es necesario mantener el estado de la entidad ya que es solo un GET
+        // El usuario solamente puede ver lo que ha creado.
+        IQueryable<ProductEntity> query = _context.Products.Where(x => x.IsDeleted == false 
+            && x.UserId == userId).AsNoTracking(); // no es necesario mantener el estado de la entidad ya que es solo un GET
 
         query = query.ApplyFilters(filters); // este llama a la QueryExtension
 
@@ -46,9 +54,9 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<ProductDto> CreateAsync(ProductCreateRequest request, CancellationToken cancellationToken)
+    public async Task<ProductDto> CreateAsync(ProductCreateRequest request, int userId, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(request,  cancellationToken);
+        await _createValidator.ValidateAndThrowAsync(request, cancellationToken);
 
         var entity = new ProductEntity
         {
@@ -58,12 +66,65 @@ public class ProductService : IProductService
             Sku = request.Sku,
             IsAvailable = request.IsAvailable,
             CategoryId = request.CategoryId,
-            // UserId = // obtained from JWT Claims
+            UserId = userId
         };
 
         _context.Products.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
 
         return ProductMapper.Map(entity);
+    }
+
+    public async Task<ProductDto> UpdateAsync(
+        int id,
+        ProductUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var ctx = new ValidationContext<ProductUpdateRequest>(request);
+        ctx.RootContextData["productId"] = id;
+        var validationResult = await _updateValidator.ValidateAsync(ctx, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
+
+        var product = await _context.Products
+            .FirstAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+
+        ApplyUpdates(product, request);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return ProductMapper.Map(product);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+    {
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted == false, cancellationToken);
+
+        if (product is null) return false;
+
+        product.IsDeleted = true;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+    
+    private static void ApplyUpdates(ProductEntity product, ProductUpdateRequest request)
+    {
+        if (request.Name is not null)
+            product.Name = request.Name;
+
+        if (request.Description is not null)
+            product.Description = request.Description;
+
+        if (request.Price is not null)
+            product.Price = request.Price.Value;
+
+        if (request.Sku is not null)
+            product.Sku = request.Sku;
+
+        if (request.IsAvailable is not null)
+            product.IsAvailable = request.IsAvailable.Value;
+
+        if (request.CategoryId is not null)
+            product.CategoryId = request.CategoryId.Value;
     }
 }

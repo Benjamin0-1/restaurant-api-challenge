@@ -6,8 +6,11 @@ namespace Restaurant.Services.Interfaces;
 
 public interface IProductService
 {
-    Task<PaginatedDto<ProductDto>> GetAsync(ProductFilter? filters, CancellationToken cancellationToken);
+    Task<PaginatedDto<ProductDto>> GetAsync(ProductFilter? filters, int userId, CancellationToken cancellationToken);
     
-    Task<ProductDto> CreateAsync(ProductCreateRequest productDto, CancellationToken cancellationToken);
+    Task<ProductDto> CreateAsync(ProductCreateRequest productDto, int userId, CancellationToken cancellationToken);
 
+    Task<ProductDto> UpdateAsync(int id, ProductUpdateRequest request, CancellationToken cancellationToken);
+
+    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken);
 }
