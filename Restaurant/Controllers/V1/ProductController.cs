@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Restaurant.Filters;
 using Restaurant.Requests;
@@ -5,6 +7,7 @@ using Restaurant.Services.Interfaces;
 
 namespace Restaurant.Controllers.V1;
 
+[Authorize]
 public class ProductController : ControllerBase
 {
     private readonly IProductService  _productService;
@@ -25,7 +28,7 @@ public class ProductController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] ProductCreateRequest request, CancellationToken cancellationToken)
     {
-        // extract UserId from claims and pass it to request.UserId
+        request.USerId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!); // se asigna automaticamente.
         var result = await _productService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }

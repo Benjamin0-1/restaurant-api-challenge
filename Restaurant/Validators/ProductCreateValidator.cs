@@ -22,12 +22,14 @@ public class ProductCreateValidator : AbstractValidator<ProductCreateRequest>
 
         RuleFor(x => x.Sku)
             .NotEmpty()
-            .MustAsync((sku, ct) => db.Products.AnyAsync(p => p.Sku != sku, ct))
+            .MustAsync(async (sku, ct) =>
+                !await db.Products.AnyAsync(p => p.Sku == sku, ct))
             .WithMessage("SKU already exists.");
 
         RuleFor(x => x.CategoryId)
             .NotEmpty()
-            .MustAsync((id, ct) => db.Categories.AnyAsync(c => c.Id == id, ct))
+            .MustAsync((id, ct) =>
+                db.Categories.AnyAsync(c => c.Id == id, ct))
             .WithMessage("Category does not exist.");
     }
 }

@@ -18,7 +18,8 @@ public class SignupRequestValidator : AbstractValidator<SignupRequest>
         RuleFor(x => x.Email)
             .NotEmpty()
             .EmailAddress()
-            .MustAsync((email, ct) => db.Users.AllAsync(u => u.Email != email, ct))
+            .MustAsync(async (email, ct) =>
+                !await db.Users.AnyAsync(u => u.Email == email, ct))
             .WithMessage("Email is already taken.");
 
         RuleFor(x => x.Password)
@@ -26,5 +27,10 @@ public class SignupRequestValidator : AbstractValidator<SignupRequest>
             .MinimumLength(8)
             .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
             .Matches(@"[0-9]").WithMessage("Password must contain at least one digit.");
+
+        RuleFor(x => x.ConfirmPassword)
+            .NotEmpty()
+            .Equal(x => x.Password)
+            .WithMessage("Passwords do not match.");
     }
 }
