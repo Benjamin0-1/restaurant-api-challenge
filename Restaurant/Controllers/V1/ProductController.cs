@@ -43,4 +43,25 @@ public class ProductController : ControllerBase
 
         return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
+
+    [HttpPatch("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Update(
+        int id,
+        [FromBody] ProductUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _productService.UpdateAsync(id, request, userId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await _productService.DeleteAsync(id, userId, cancellationToken);
+        return NoContent();
+    }
 }

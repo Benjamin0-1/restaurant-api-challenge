@@ -12,6 +12,7 @@ using Restaurant.Shared;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+builder.Services.AddExceptionHandler<KeyNotFoundExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();

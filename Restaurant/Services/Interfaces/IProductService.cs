@@ -10,7 +10,7 @@ public interface IProductService
     
     Task<ProductDto> CreateAsync(ProductCreateRequest productDto, int userId, CancellationToken cancellationToken);
 
-    Task<ProductDto> UpdateAsync(int id, ProductUpdateRequest request, CancellationToken cancellationToken);
+    Task<ProductDto> UpdateAsync(int id, ProductUpdateRequest request, int userId, CancellationToken cancellationToken);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken);
+    Task<bool> DeleteAsync(int id, int userId, CancellationToken cancellationToken);
 }
