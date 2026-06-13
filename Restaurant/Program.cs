@@ -9,6 +9,7 @@ using Restaurant.Services;
 using Restaurant.Services.Interfaces;
 using Restaurant.Settings;
 using Restaurant.Shared;
+using Restaurant.Shared.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<CategorySeeder>();
+builder.Services.AddScoped<UserSeeder>();
+builder.Services.AddScoped<ProductSeeder>();
 
 builder.Services.AddDbContext<DatabaseContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -65,6 +69,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await services.GetRequiredService<CategorySeeder>().SeedAsync();
+    await services.GetRequiredService<UserSeeder>().SeedAsync();
+    await services.GetRequiredService<ProductSeeder>().SeedAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
