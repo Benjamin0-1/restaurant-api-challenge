@@ -30,7 +30,7 @@ public class ProductService : IProductService
     public async Task<PaginatedDto<ProductDto>> GetAsync(ProductFilter? filters, 
         int userId, CancellationToken cancellationToken)
     {
-        // El usuario solamente puede ver lo que ha creado.
+        // El usuario solamente puede ver lo que ha creado y no ha eliminado.
         IQueryable<ProductEntity> query = _context.Products.Where(x => x.IsDeleted == false 
             && x.UserId == userId).AsNoTracking(); // no es necesario mantener el estado de la entidad ya que es solo un GET
 
@@ -78,16 +78,21 @@ public class ProductService : IProductService
     public async Task<ProductDto> UpdateAsync(
         int id,
         ProductUpdateRequest request,
+        int userId,
         CancellationToken cancellationToken)
     {
-        var ctx = new ValidationContext<ProductUpdateRequest>(request);
-        ctx.RootContextData["productId"] = id;
-        var validationResult = await _updateValidator.ValidateAsync(ctx, cancellationToken);
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-
+        // esto valida que el usuario solo pueda actualizar lo que le "pertenece"
         var product = await _context.Products
-            .FirstAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(p =>
+                    p.Id == id &&
+                    !p.IsDeleted &&
+                    p.UserId == userId,
+                cancellationToken);
+
+        if (product is null)
+            throw new KeyNotFoundException($"Product {id} not found."); // devolvera NotFound
+
+        await _updateValidator.ValidateAndThrowAsync(request, cancellationToken);
 
         ApplyUpdates(product, request);
 
@@ -96,9 +101,10 @@ public class ProductService : IProductService
         return ProductMapper.Map(product);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+    public async Task<bool> DeleteAsync(int id, int userId, CancellationToken cancellationToken)
     {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted == false, cancellationToken);
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id 
+                                                                       && !p.IsDeleted && p.UserId == userId, cancellationToken);
 
         if (product is null) return false;
 
