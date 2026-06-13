@@ -61,7 +61,8 @@ public class ProductController : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await _productService.DeleteAsync(id, userId, cancellationToken);
+        var result = await _productService.DeleteAsync(id, userId, cancellationToken);
+        if (!result) return NotFound();
         return NoContent();
     }
 }

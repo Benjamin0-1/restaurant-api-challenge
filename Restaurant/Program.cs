@@ -42,9 +42,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<CategorySeeder>();
-builder.Services.AddScoped<UserSeeder>();
-builder.Services.AddScoped<ProductSeeder>();
+builder.Services.AddScoped<ISeeder, CategorySeeder>();
+builder.Services.AddScoped<ISeeder, UserSeeder>();
+builder.Services.AddScoped<ISeeder, ProductSeeder>();
 
 builder.Services.AddDbContext<DatabaseContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -72,10 +72,12 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    await services.GetRequiredService<CategorySeeder>().SeedAsync();
-    await services.GetRequiredService<UserSeeder>().SeedAsync();
-    await services.GetRequiredService<ProductSeeder>().SeedAsync();
+    var seeders = scope.ServiceProvider.GetServices<ISeeder>();
+
+    foreach (var seeder in seeders)
+    {
+        await seeder.SeedAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())

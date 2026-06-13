@@ -23,7 +23,7 @@ public class UserSeeder : ISeeder
         {
             Name = "Admin",
             Email = "admin@restaurant.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345678"),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345678A"),
             CreatedAt = now,
             UpdatedAt = now
         };
